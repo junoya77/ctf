@@ -1,0 +1,213 @@
+<html>
+<head>
+	<title>Nuclear Weapon Control</title>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Tangerine">
+	<style>
+		body {
+			font-family: 'Inconsolate', monospace;
+			font-size: 20px;
+			color: yellow;
+			text-shadow: 0 0 5px #c8c8c8;
+		}
+		.water {
+			fill: #006994;
+		}
+		.land {
+			fill: #e1b45f;
+			stroke: #555;
+			stroke-width: 0.7px;
+		}
+		.land:hover {
+			fill: #33cc33;
+			stroke-width: 1px;
+		}
+		.selectedCountry {
+			position: abolute;
+			text-align: left;
+			color: #fff;
+			font-size: 13px;
+			margin-top: 10px;
+			margin-bottom: 10px;
+		}
+		.log {
+			position: abolute;
+			text-align: left;
+			color: yellow;
+			font-size: 10px;
+			margin-top: 10px;
+			margin-bottom: 10px;
+		}
+		.myButton {
+			-moz-box-shadow:inset 0px 1px 0px 0px #cf866c;
+			-webkit-box-shadow:inset 0px 1px 0px 0px #cf866c;
+			box-shadow:inset 0px 1px 0px 0px #cf866c;
+			background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #d0451b), color-stop(1, #bc3315));
+			background:-moz-linear-gradient(top, #d0451b 5%, #bc3315 100%);
+			background:-webkit-linear-gradient(top, #d0451b 5%, #bc3315 100%);
+			background:-o-linear-gradient(top, #d0451b 5%, #bc3315 100%);
+			background:-ms-linear-gradient(top, #d0451b 5%, #bc3315 100%);
+			background:linear-gradient(to bottom, #d0451b 5%, #bc3315 100%);
+			filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#d0451b', endColorstr='#bc3315',GradientType=0);
+			background-color:#d0451b;
+			-moz-border-radius:3px;
+			-webkit-border-radius:3px;
+			border-radius:3px;
+			border:1px solid #942911;
+			display:inline-block;
+			cursor:pointer;
+			color:#ffffff;
+			font-family:Arial;
+			font-size:13px;
+			padding:6px 24px;
+			text-decoration:none;
+			text-shadow:0px 1px 0px #854629;
+		}
+		.myButton:hover {
+			background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #bc3315), color-stop(1, #d0451b));
+			background:-moz-linear-gradient(top, #bc3315 5%, #d0451b 100%);
+			background:-webkit-linear-gradient(top, #bc3315 5%, #d0451b 100%);
+			background:-o-linear-gradient(top, #bc3315 5%, #d0451b 100%);
+			background:-ms-linear-gradient(top, #bc3315 5%, #d0451b 100%);
+			background:linear-gradient(to bottom, #bc3315 5%, #d0451b 100%);
+			filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#bc3315', endColorstr='#d0451b',GradientType=0);
+			background-color:#bc3315;
+		}
+		.myButton:active {
+			position:relative;
+			top:1px;
+		}
+	</style>
+</head>
+<body bgcolor="#000000">
+	<div>Nuclear Weapon Console</div>
+	<div class="selectedCountry">Target Country: </div>
+	<div class="log">Waiting for your decision..</div>
+	<a href="#" class="myButton">Fire!</a>
+	<script src="https://d3js.org/d3.v3.min.js"></script>
+	<script src="https://d3js.org/queue.v1.min.js"></script>
+	<script src="https://d3js.org/topojson.v1.min.js"></script>
+	<script>
+		var targetCountryId = "";
+		var targetCountryName = "";
+
+		var width = 900;
+		var height = 500;
+		var sens = 0.50;
+
+		var selectedCountry = d3.select(".selectedCountry");
+		var log = d3.select(".log");
+
+		var fireButton = d3.select(".myButton");
+		fireButton.on("click", function() {
+			if(targetCountryId == "") {
+				log.text("First, select target country..");
+				return;
+			}
+			log.text(targetCountryName + " will be destroyed..");
+			fire(targetCountryId);
+		});
+
+		var projection = d3.geo.orthographic()
+			.scale(245)
+			.rotate([0,0])
+			.translate([width/2, height/2])
+			.clipAngle(90);
+
+		var path = d3.geo.path()
+			.projection(projection);
+
+		var svg = d3.select("body").append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+		svg.append("path")
+			.datum({type: "Sphere"})
+			.attr("class", "water")
+			.attr("d", path);
+
+		queue()
+			.defer(d3.json, "world-110m.json")
+			.defer(d3.tsv, "world-110m-country-names.tsv")
+			.await(ready);
+
+		function ready(error, world, countryData) {
+			var countryById = {};
+			var countries = topojson.feature(world, world.objects.countries).features;
+
+			countryData.forEach(function(d){
+				countryById[d.id] = d.name;
+			});
+
+			var world = svg.selectAll("path.land")
+				.data(countries)
+				.enter().append("path")
+				.attr("class", "land")
+				.attr("d", path)
+				.call(d3.behavior.drag()
+					.origin(function() {
+						var r = projection.rotate();
+						return {x:r[0]/sens, y:-r[1]/sens};
+					})
+					.on("drag", function(){
+						var rotate = projection.rotate();
+						projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
+						svg.selectAll("path.land").attr("d", path);
+					}))
+				.on("mouseover", function(d) {
+					
+				})
+				.on("click", function(d){
+					selectedCountry.text("Target Country: " + countryById[d.id]);
+					targetCountryId = d.id;
+					targetCountryName = countryById[d.id];
+					log.text("Now.. push the 'Fire!' button.");
+				});
+		}
+
+		function fire(targetCountry) {
+			var data = `<fire><target>${targetCountry}</target></fire>`;
+			var xmlhttp = new XMLHttpRequest();
+			xmlhttp.open("POST", "f");
+			xmlhttp.setRequestHeader('Content-Type', 'text/plain');
+			xmlhttp.send(data);
+
+			xmlhttp.addEventListener('load', function() {
+				var json = JSON.parse(xmlhttp.responseText);
+				if(json.result == 'success') {
+					log.text(targetCountryName + " is destroyed..");
+				}
+				else if(json.result == "fail") {
+					log.text(targetCountryName + " is not destroyed because of " + json.message);
+				}
+				else if(json.result == "dup") {
+					log.text(targetCountryName + " is already destroyed.");
+				}
+				else if(json.result == "err") {
+				}
+				else {
+					log.text("ERROR: " + json.message);
+				}
+			});
+		}
+
+
+
+/*
+		function setOption(option) {
+			var xmlhttp = new XMLHttpRequest();
+			xmlhttp.open("POST", "o");
+			xmlhttp.setRequestHeader('Content-Type', 'text/plain');
+			xmlhttp.send(option);
+
+			xmlhttp.addEventListener('load', function() {
+				var result = JSON.parse(xmlhttp.responseText);
+				document.write(result.result + ", " + result.count);
+			});
+		}
+
+		//setOption('{"compact":true, "trim":true}');
+		fire("CH", 10);
+*/
+	</script>
+</body>
+</html>

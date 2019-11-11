@@ -1,0 +1,10 @@
+service casino_service
+{
+	flags = REUSE
+	socket_type = stream
+	wait = no
+	user = casinoapp
+	server = /src/casino
+	disable = no
+	port = 4000
+}
