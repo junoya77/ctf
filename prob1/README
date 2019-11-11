@@ -5,3 +5,7 @@ You are given seed money depending on your luck.
 If your family does not like your gambling, you can edit your gambling history.
 Have a great time! 
 
+
+$ docker build -t p1 -f ./Dockerfile
+$ docker run -dp 4000:4000/tcp p1
+
